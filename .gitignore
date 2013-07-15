@@ -1,0 +1,6 @@
+*.class
+*.xml
+.classpath
+.plxarc
+.project
+/target
