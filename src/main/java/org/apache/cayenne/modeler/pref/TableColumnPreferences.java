@@ -137,7 +137,8 @@ public class TableColumnPreferences extends CayennePreference {
 
     private void updateTable(
             Map<Integer, Integer> minSizes,
-            Map<Integer, Integer> maxSizes, Map<Integer, Integer> defaultSizes) {
+            Map<Integer, Integer> maxSizes, 
+            Map<Integer, Integer> defaultSizes) {
         updateWidths(minSizes, maxSizes, defaultSizes);
         updateOrder();
     }

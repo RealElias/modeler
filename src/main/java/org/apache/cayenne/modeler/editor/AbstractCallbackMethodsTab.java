@@ -21,7 +21,6 @@ package org.apache.cayenne.modeler.editor;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
-import java.awt.GridLayout;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.StringSelection;
 import java.awt.datatransfer.Transferable;
@@ -30,7 +29,6 @@ import java.awt.event.ItemListener;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.swing.BoxLayout;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
@@ -85,13 +83,13 @@ public abstract class AbstractCallbackMethodsTab extends JPanel {
      * toolbar for actions
      */
     protected JToolBar toolBar;
+    
+    protected JPanel auxPanel;
 
     /**
      * table for displaying callback method names
      */
     protected CayenneTable table;
-    
-    protected JPanel auxPanel;
 
     /**
      * preferences for the callback methods table
@@ -172,7 +170,7 @@ public abstract class AbstractCallbackMethodsTab extends JPanel {
         FormLayout formLayout = new FormLayout("right:70dlu, 3dlu, fill:150dlu");
         DefaultFormBuilder builder = new DefaultFormBuilder(formLayout);
         buildFilter(builder);
-        toolBar.add(builder.getPanel());
+        toolBar.add(builder.getPanel(), BorderLayout.NORTH);
         
         add(toolBar, BorderLayout.NORTH);
 
@@ -362,93 +360,71 @@ public abstract class AbstractCallbackMethodsTab extends JPanel {
     /**
      * rebuilds table content
      */
-//    protected void rebuildTable() {
-//        CallbackType callbackType = (CallbackType) callbackTypeCombo.getSelectedItem();
-//        List methods = new ArrayList();
-//        CallbackDescriptor descriptor = null;
-//        CallbackMap callbackMap = getCallbackMap();
-//
-//        if (callbackMap != null && callbackType != null) {
-//            descriptor = callbackMap.getCallbackDescriptor(callbackType.getType());
-//            for (String callbackMethod : descriptor.getCallbackMethods()) {
-//                methods.add(callbackMethod);
-//            }
-//        }
-//
-//        final CallbackDescriptorTableModel model = new CallbackDescriptorTableModel(
-//                mediator,
-//                this,
-//                methods,
-//                descriptor);
-//
-//        table.setModel(model);
-//        table.setRowHeight(25);
-//        table.setRowMargin(3);
-//
-//        mediator.setCurrentCallbackMethods(new String[0]);
-//
-//        tablePreferences.bind(table, null, null, null);
-//    }
-
     protected void rebuildTable() {
+    	FormLayout formLayout = new FormLayout("left:" + auxPanel.getWidth() + "px");
+        DefaultFormBuilder builder = new DefaultFormBuilder(formLayout);
+
+    	auxPanel.removeAll();
+
+    	CallbackMap callbackMap = getCallbackMap();
+        
+        if (callbackMap != null) {
+        	for(int i = 0; i < callbackTypeCombo.getItemCount(); i++) {
+        		builder.append(CreateTable((CallbackType)callbackTypeCombo.getItemAt(i)));
+            }
+        }
+
+        auxPanel.add(builder.getPanel(), BorderLayout.CENTER);
+        validate();
+    }
+
+    private JPanel CreateTable(CallbackType callbackType)
+    {
+   	
+    	CayenneTable cayenneTable = new CayenneTable();
+    	cayenneTable.setDefaultRenderer(String.class, new StringRenderer());
+
+        // drag-and-drop initialization
+    	cayenneTable.setDragEnabled(true);
+    	
+        List methods = new ArrayList();
         CallbackDescriptor descriptor = null;
         CallbackMap callbackMap = getCallbackMap();
 
-        auxPanel.removeAll();
-        DefaultFormBuilder builder = new DefaultFormBuilder(new FormLayout("100dlu"));
-        
-        for(int i = 0; i < callbackTypeCombo.getItemCount(); i++)
-        {
-	        if (callbackMap != null) {
-	            descriptor = callbackMap.getCallbackDescriptor(((CallbackType)callbackTypeCombo.getItemAt(i)).getType());
-	            builder.append(CreateTable(descriptor));
-	        }
-        }
-        
-        auxPanel.add(builder.getPanel(), BorderLayout.WEST);
-        validate();
-    }
-    
-    private JPanel CreateTable(CallbackDescriptor descriptor) {
-
-        List methods = new ArrayList();
-        CayenneTable cayenneTable = new CayenneTable();
-
-        // Create table with two columns and no rows.
-        cayenneTable.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
-        cayenneTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
-
-        cayenneTable = new CayenneTable();
-        
+        descriptor = callbackMap.getCallbackDescriptor(callbackType.getType());
         for (String callbackMethod : descriptor.getCallbackMethods()) {
             methods.add(callbackMethod);
         }
-	
-	    final CallbackDescriptorTableModel model = new CallbackDescriptorTableModel(
-	            mediator,
-	            this,
-	            methods,
-	            descriptor);
-	
-	   cayenneTable.setModel(model);
-	   cayenneTable.setRowHeight(25);
-	   cayenneTable.setRowMargin(3);
-	   tablePreferences.bind(cayenneTable, null, null, null);
-      
-       // Panel to add space between table and EAST/WEST borders
-	   JPanel panel = new JPanel();
-   	   panel.setLayout(new BorderLayout());
 
-   	   JScrollPane scrollPane = new JScrollPane(cayenneTable);
-//   	   scrollPane.
-       panel.add(cayenneTable.getTableHeader(), BorderLayout.NORTH);
-       panel.add(cayenneTable, BorderLayout.CENTER);
-//       panel.setBounds(cayenneTable.getBounds());
+        final CallbackDescriptorTableModel model = new CallbackDescriptorTableModel(
+                mediator,
+                this,
+                methods,
+                descriptor);
 
-       return panel;
+        cayenneTable.setModel(model);
+        cayenneTable.setRowHeight(25);
+        cayenneTable.setRowMargin(3);
+        cayenneTable.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+        cayenneTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+        
+        tablePreferences.bind(cayenneTable, null, null, null);
+
+        // Create and install a popup
+        JPopupMenu popup = new JPopupMenu();
+        popup.add(getRemoveCallbackMethodAction().buildMenu());
+
+        TablePopupHandler.install(cayenneTable, popup);
+        
+        JPanel panel = new JPanel();
+        panel.setLayout(new BorderLayout());
+        panel.add(cayenneTable.getTableHeader(), BorderLayout.NORTH);
+        panel.add(cayenneTable, BorderLayout.CENTER);
+        
+        return panel;
     }
 
-    
+
     /**
      * class for renderig string values
      */
