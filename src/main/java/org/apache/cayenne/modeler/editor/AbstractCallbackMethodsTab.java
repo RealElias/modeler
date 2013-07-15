@@ -176,74 +176,6 @@ public abstract class AbstractCallbackMethodsTab extends JPanel {
         auxPanel.setOpaque(false);
         auxPanel.setLayout(new BorderLayout());
 
-        /*table = new CayenneTable();
-        table.setDefaultRenderer(String.class, new StringRenderer());
-
-        // drag-and-drop initialization
-        table.setDragEnabled(true);
-
-        table.setTransferHandler(new TransferHandler() {
-
-            @Override
-            protected Transferable createTransferable(JComponent c) {
-                int rowIndex = table.getSelectedRow();
-
-                String result = null;
-                if (rowIndex >= 0 && rowIndex < table.getModel().getRowCount()) {
-                    result = String.valueOf(table.getModel().getValueAt(
-                            rowIndex,
-                            CallbackDescriptorTableModel.METHOD_NAME));
-                }
-
-                return new StringSelection(result);
-            }
-
-            @Override
-            public int getSourceActions(JComponent c) {
-                return COPY_OR_MOVE;
-            }
-
-            @Override
-            public boolean importData(JComponent comp, Transferable t) {
-                if (canImport(comp, t.getTransferDataFlavors())) {
-                    String callbackMethod;
-                    try {
-                        callbackMethod = (String) t
-                                .getTransferData(DataFlavor.stringFlavor);
-                    }
-                    catch (Exception e) {
-                        logger.warn("Error transferring", e);
-                        return false;
-                    }
-
-                    int rowIndex = table.getSelectedRow();
-
-                    // move callback method inside of model
-                    CallbackDescriptor callbackDescriptor = getCallbackMap()
-                            .getCallbackDescriptor(
-                                    ((CallbackType) callbackTypeCombo.getSelectedItem())
-                                            .getType());
-                    mediator.setDirty(callbackDescriptor.moveMethod(
-                            callbackMethod,
-                            rowIndex));
-                    rebuildTable();
-                    return true;
-                }
-
-                return false;
-            }
-
-            @Override
-            public boolean canImport(JComponent comp, DataFlavor[] transferFlavors) {
-                for (DataFlavor flavor : transferFlavors) {
-                    if (DataFlavor.stringFlavor.equals(flavor)) {
-                        return true;
-                    }
-                }
-                return false;
-            }
-        });*/
-
         initTablePreferences();
 
         add(new JScrollPane(auxPanel), BorderLayout.CENTER);
@@ -380,11 +312,6 @@ public abstract class AbstractCallbackMethodsTab extends JPanel {
 
                     int rowIndex = cayenneTable.getSelectedRow();
 
-                    // move callback method inside of model
-                    /*CallbackDescriptor callbackDescriptor = getCallbackMap()
-                            .getCallbackDescriptor(
-                                    ((CallbackType) callbackTypeCombo.getSelectedItem())
-                                            .getType());*/
                     CallbackDescriptor callbackDescriptor = ((CallbackDescriptorTableModel)cayenneTable.getCayenneModel()).getCallbackDescriptor();
                     mediator.setDirty(callbackDescriptor.moveMethod(
                             callbackMethod,
