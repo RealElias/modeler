@@ -84,12 +84,10 @@ public abstract class AbstractCallbackMethodsTab extends JPanel {
      */
     protected JToolBar toolBar;
     
-    protected JPanel auxPanel;
-
     /**
-     * table for displaying callback method names
+     * panel for displaying callback method tables
      */
-    protected CayenneTable table;
+    protected JPanel auxPanel;
 
     /**
      * preferences for the callback methods table
@@ -178,7 +176,7 @@ public abstract class AbstractCallbackMethodsTab extends JPanel {
         auxPanel.setOpaque(false);
         auxPanel.setLayout(new BorderLayout());
 
-        table = new CayenneTable();
+        /*table = new CayenneTable();
         table.setDefaultRenderer(String.class, new StringRenderer());
 
         // drag-and-drop initialization
@@ -244,17 +242,9 @@ public abstract class AbstractCallbackMethodsTab extends JPanel {
                 }
                 return false;
             }
-        });
+        });*/
 
         initTablePreferences();
-
-        // Create and install a popup
-        JPopupMenu popup = new JPopupMenu();
-        popup.add(getRemoveCallbackMethodAction().buildMenu());
-
-        TablePopupHandler.install(table, popup);
-
-        //auxPanel.add(PanelFactory.createTablePanel(table, null), BorderLayout.CENTER);
 
         add(new JScrollPane(auxPanel), BorderLayout.CENTER);
     }
@@ -271,70 +261,17 @@ public abstract class AbstractCallbackMethodsTab extends JPanel {
         mediator.addCallbackMethodListener(new CallbackMethodListener() {
 
             public void callbackMethodChanged(CallbackMethodEvent e) {
-                if (isVisible()) {
-                    rebuildTable();
-                }
+                rebuildTable();
             }
 
             public void callbackMethodAdded(CallbackMethodEvent e) {
-                if (isVisible()) {
-                    updateCallbackTypeCounters();
-                    rebuildTable();
-
-                    if (table.editCellAt(
-                            table.getRowCount() - 1,
-                            CallbackDescriptorTableModel.METHOD_NAME)
-                            && table.getEditorComponent() != null) {
-                        table.getEditorComponent().requestFocus();
-                    }
-                }
+                updateCallbackTypeCounters();
+                rebuildTable();
             }
 
             public void callbackMethodRemoved(CallbackMethodEvent e) {
-                if (isVisible()) {
-                    updateCallbackTypeCounters();
-                    rebuildTable();
-                }
-            }
-        });
-
-        callbackTypeCombo.addItemListener(new ItemListener() {
-
-            public void itemStateChanged(ItemEvent e) {
-                if (e.getStateChange() == ItemEvent.SELECTED) {
-                    mediator.setCurrentCallbackType((CallbackType) callbackTypeCombo
-                            .getSelectedItem());
-                    updateCallbackTypeCounters();
-                    rebuildTable();
-                }
-            }
-        });
-
-        table.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
-
-            public void valueChanged(ListSelectionEvent e) {
-                if (!e.getValueIsAdjusting()) {
-                    String[] methods = new String[0];
-
-                    if (table.getSelectedRow() != -1) {
-                        int[] sel = table.getSelectedRows();
-                        methods = new String[sel.length];
-
-                        for (int i = 0; i < sel.length; i++) {
-                            methods[i] = (String) table
-                                    .getValueAt(
-                                            sel[i],
-                                            table
-                                                    .convertColumnIndexToView(CallbackDescriptorTableModel.METHOD_NAME));
-                        }
-                    }
-
-                    mediator.setCurrentCallbackMethods(methods);
-                    getRemoveCallbackMethodAction().setEnabled(methods.length > 0);
-                    getRemoveCallbackMethodAction().setName(
-                            getRemoveCallbackMethodAction().getActionName(
-                                    methods.length > 1));
-                }
+                updateCallbackTypeCounters();
+                rebuildTable();
             }
         });
     }
@@ -381,8 +318,7 @@ public abstract class AbstractCallbackMethodsTab extends JPanel {
     private JPanel CreateTable(CallbackType callbackType)
     {
    	
-    	CayenneTable cayenneTable = new CayenneTable();
-    	cayenneTable.setDefaultRenderer(String.class, new StringRenderer());
+    	final CayenneTable cayenneTable = new CayenneTable();
 
         // drag-and-drop initialization
     	cayenneTable.setDragEnabled(true);
@@ -408,6 +344,70 @@ public abstract class AbstractCallbackMethodsTab extends JPanel {
         cayenneTable.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
         cayenneTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
         
+        cayenneTable.setTransferHandler(new TransferHandler() {
+
+            @Override
+            protected Transferable createTransferable(JComponent c) {
+                int rowIndex = cayenneTable.getSelectedRow();
+
+                String result = null;
+                if (rowIndex >= 0 && rowIndex < cayenneTable.getModel().getRowCount()) {
+                    result = String.valueOf(cayenneTable.getModel().getValueAt(
+                            rowIndex,
+                            CallbackDescriptorTableModel.METHOD_NAME));
+                }
+
+                return new StringSelection(result);
+            }
+
+            @Override
+            public int getSourceActions(JComponent c) {
+                return COPY_OR_MOVE;
+            }
+
+            @Override
+            public boolean importData(JComponent comp, Transferable t) {
+                if (canImport(comp, t.getTransferDataFlavors())) {
+                    String callbackMethod;
+                    try {
+                        callbackMethod = (String) t
+                                .getTransferData(DataFlavor.stringFlavor);
+                    }
+                    catch (Exception e) {
+                        logger.warn("Error transferring", e);
+                        return false;
+                    }
+
+                    int rowIndex = cayenneTable.getSelectedRow();
+
+                    // move callback method inside of model
+                    /*CallbackDescriptor callbackDescriptor = getCallbackMap()
+                            .getCallbackDescriptor(
+                                    ((CallbackType) callbackTypeCombo.getSelectedItem())
+                                            .getType());*/
+                    CallbackDescriptor callbackDescriptor = ((CallbackDescriptorTableModel)cayenneTable.getCayenneModel()).getCallbackDescriptor();
+                    mediator.setDirty(callbackDescriptor.moveMethod(
+                            callbackMethod,
+                            rowIndex));
+                    rebuildTable();
+                    return true;
+                }
+
+                return false;
+            }
+
+            @Override
+            public boolean canImport(JComponent comp, DataFlavor[] transferFlavors) {
+                for (DataFlavor flavor : transferFlavors) {
+                    if (DataFlavor.stringFlavor.equals(flavor)) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+        });
+        
+        
         tablePreferences.bind(cayenneTable, null, null, null);
 
         // Create and install a popup
@@ -422,53 +422,6 @@ public abstract class AbstractCallbackMethodsTab extends JPanel {
         panel.add(cayenneTable, BorderLayout.CENTER);
         
         return panel;
-    }
-
-
-    /**
-     * class for renderig string values
-     */
-    class StringRenderer extends DefaultTableCellRenderer {
-
-        @Override
-        public Component getTableCellRendererComponent(
-                JTable table,
-                Object value,
-                boolean isSelected,
-                boolean hasFocus,
-                int row,
-                int column) {
-
-            // center cardinality column
-            int align = column == ObjRelationshipTableModel.REL_SEMANTICS
-                    ? JLabel.CENTER
-                    : JLabel.LEFT;
-            super.setHorizontalAlignment(align);
-
-            super.getTableCellRendererComponent(
-                    table,
-                    value,
-                    isSelected,
-                    hasFocus,
-                    row,
-                    column);
-
-            ObjRelationshipTableModel model = (ObjRelationshipTableModel) table
-                    .getModel();
-            ObjRelationship relationship = model.getRelationship(row);
-
-            if (relationship != null
-                    && relationship.getSourceEntity() != model.getEntity()) {
-                setForeground(Color.GRAY);
-            }
-            else {
-                setForeground(isSelected && !hasFocus
-                        ? table.getSelectionForeground()
-                        : table.getForeground());
-            }
-
-            return this;
-        }
     }
 
     protected final CallbackType getSelectedCallbackType() {

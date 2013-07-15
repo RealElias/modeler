@@ -80,9 +80,8 @@ public class CayenneTable extends JTable {
         final DefaultCellEditor textEditor = Application
                 .getWidgetFactory()
                 .createCellEditor(textField);
-        textEditor.setClickCountToStart(1);
+        textEditor.setClickCountToStart(2);
 
-        setDefaultEditor(Object.class, textEditor);
         setDefaultEditor(String.class, textEditor);
     }
 
