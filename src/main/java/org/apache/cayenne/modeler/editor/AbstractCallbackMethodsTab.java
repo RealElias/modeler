@@ -99,10 +99,7 @@ public abstract class AbstractCallbackMethodsTab extends JPanel {
     /**
      * Dropdown for callback type selection. Contains fixed list of 7 callback types.
      */
-    protected JComboBox callbackTypeCombo = Application
-            .getWidgetFactory()
-            .createComboBox(
-                    new Object[] {
+    protected CallbackType[] callbackTypes = {
                             new CallbackType(LifecycleEvent.POST_ADD, "post-add"),
                             new CallbackType(LifecycleEvent.PRE_PERSIST, "pre-persist"),
                             new CallbackType(LifecycleEvent.POST_PERSIST, "post-persist"),
@@ -111,8 +108,7 @@ public abstract class AbstractCallbackMethodsTab extends JPanel {
                             new CallbackType(LifecycleEvent.PRE_REMOVE, "pre-remove"),
                             new CallbackType(LifecycleEvent.POST_REMOVE, "post-remove"),
                             new CallbackType(LifecycleEvent.POST_LOAD, "post-load"),
-                    },
-                    false);
+                    };
 
     /**
      * constructor
@@ -129,17 +125,6 @@ public abstract class AbstractCallbackMethodsTab extends JPanel {
      * @return CallbackMap with callback methods
      */
     protected abstract CallbackMap getCallbackMap();
-
-    /**
-     * creates filter pane for filtering callback methods list adds callback method type
-     * dropdown
-     * 
-     * @param builder forms builder
-     */
-    protected void buildFilter(DefaultFormBuilder builder) {
-        JLabel callbacktypeLabel = new JLabel("Callback type:");
-        builder.append(callbacktypeLabel, callbackTypeCombo);
-    }
 
     /**
      * @return create callback method action
@@ -167,11 +152,6 @@ public abstract class AbstractCallbackMethodsTab extends JPanel {
         toolBar.add(getCreateCallbackMethodAction().buildButton());
         toolBar.add(getRemoveCallbackMethodAction().buildButton());
 
-        FormLayout formLayout = new FormLayout("right:70dlu, 3dlu, fill:150dlu");
-        DefaultFormBuilder builder = new DefaultFormBuilder(formLayout);
-        buildFilter(builder);
-        toolBar.add(builder.getPanel(), BorderLayout.NORTH);
-        
         add(toolBar, BorderLayout.NORTH);
 
         auxPanel = new JPanel();
@@ -199,45 +179,13 @@ public abstract class AbstractCallbackMethodsTab extends JPanel {
             }
 
             public void callbackMethodAdded(CallbackMethodEvent e) {
-                updateCallbackTypeCounters();
                 rebuildTable();
             }
 
             public void callbackMethodRemoved(CallbackMethodEvent e) {
-                updateCallbackTypeCounters();
                 rebuildTable();
             }
         });
-        
-        callbackTypeCombo.addItemListener(new ItemListener() {
-
-            public void itemStateChanged(ItemEvent e) {
-                if (e.getStateChange() == ItemEvent.SELECTED) {
-                    mediator.setCurrentCallbackType((CallbackType) callbackTypeCombo
-                            .getSelectedItem());
-                    updateCallbackTypeCounters();
-                    rebuildTable();
-                }
-            }
-        });
-    }
-
-    protected void updateCallbackTypeCounters() {
-        CallbackMap map = getCallbackMap();
-
-        for (int i = 0; i < callbackTypeCombo.getItemCount(); i++) {
-            CallbackType type = (CallbackType) callbackTypeCombo.getItemAt(i);
-
-            if (map == null) {
-                type.setCounter(0);
-            }
-            else {
-                CallbackDescriptor callbackDescriptor = map.getCallbackDescriptor(type
-                        .getType());
-                type.setCounter(callbackDescriptor.getCallbackMethods().size());
-            }
-        }
-        callbackTypeCombo.repaint();
     }
 
     /**
@@ -252,8 +200,8 @@ public abstract class AbstractCallbackMethodsTab extends JPanel {
     	CallbackMap callbackMap = getCallbackMap();
         
         if (callbackMap != null) {
-        	for(int i = 0; i < callbackTypeCombo.getItemCount(); i++) {
-        		builder.append(CreateTable((CallbackType)callbackTypeCombo.getItemAt(i)));
+        	for(CallbackType callbackType : callbackTypes) {
+        		builder.append(CreateTable(callbackType));
             }
         }
 
@@ -367,14 +315,14 @@ public abstract class AbstractCallbackMethodsTab extends JPanel {
                         }
                     }
 
-                    LifecycleEvent callbackType = ((CallbackDescriptorTableModel)cayenneTable.getCayenneModel()).getCallbackDescriptor().getCallbackType();
-                    for(int i = 0; i < callbackTypeCombo.getItemCount(); i++) {
-                    	if(callbackType == ((CallbackType)callbackTypeCombo.getItemAt(i)).getType())
-                    		mediator.setCurrentCallbackType((CallbackType)callbackTypeCombo.getItemAt(i));
+                    LifecycleEvent currentType = ((CallbackDescriptorTableModel)cayenneTable.getCayenneModel()).getCallbackDescriptor().getCallbackType();
+                    for(CallbackType callbackType : callbackTypes) {
+                    	if(callbackType.getType() == currentType) {
+                    		mediator.setCurrentCallbackType(callbackType);
+                    		break;
+                    	}
                     }
-                    
-                    //mediator.setCurrentCallbackType(new CallbackType(callbackType, callbackType.getName()));
-                    
+
                     mediator.setCurrentCallbackMethods(methods);
                     getRemoveCallbackMethodAction().setEnabled(methods.length > 0);
                     getRemoveCallbackMethodAction().setName(
@@ -397,16 +345,13 @@ public abstract class AbstractCallbackMethodsTab extends JPanel {
         panel.setLayout(new BorderLayout());
         
         
-        final JButton button = new JButton(ModelerUtil.buildIcon("icon-create-method.gif"));
+        final JButton button = getCreateCallbackMethodAction().buildButton();
+        button.setIcon(ModelerUtil.buildIcon("icon-create-method.gif"));
         button.setOpaque(false);
         button.setMargin(new Insets(2, 2, 2, 2));
         button.setBorderPainted(false);
         button.setContentAreaFilled(false);
-        button.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                JOptionPane.showMessageDialog(button, "You have clicked me");
-            }
-        });
+        button.addActionListener(new ButtonListener(callbackType));
         JTableHeader header = cayenneTable.getTableHeader();
         header.setLayout(new BorderLayout());
         header.add(button, BorderLayout.EAST);
@@ -417,12 +362,18 @@ public abstract class AbstractCallbackMethodsTab extends JPanel {
         return panel;
     }
 
-    class MyItemListener implements ItemListener  
+    class ButtonListener implements ActionListener  
     {  
-    	public void itemStateChanged(ItemEvent e) {  
-    		Object source = e.getSource();  
-    		if (source instanceof AbstractButton == false) return;  
-    	}  
+    	private CallbackType callbackType;
+    	
+    	public ButtonListener(CallbackType callbackType){
+    		this.callbackType = callbackType;
+    	}
+    	
+        public void actionPerformed(ActionEvent e) {
+        	mediator.setCurrentCallbackType(callbackType);
+            //JOptionPane.showMessageDialog(button, "You have clicked me");
+        }
     } 
 
     protected final CallbackType getSelectedCallbackType() {
