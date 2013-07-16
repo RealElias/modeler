@@ -19,20 +19,23 @@
 package org.apache.cayenne.modeler.editor;
 
 import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Component;
+import java.awt.Insets;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.StringSelection;
 import java.awt.datatransfer.Transferable;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.util.ArrayList;
 import java.util.List;
 
 import javax.swing.AbstractButton;
+import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
@@ -42,12 +45,10 @@ import javax.swing.ListSelectionModel;
 import javax.swing.TransferHandler;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
-import javax.swing.table.DefaultTableCellRenderer;
-
+import javax.swing.table.JTableHeader;
 import org.apache.cayenne.map.CallbackDescriptor;
 import org.apache.cayenne.map.CallbackMap;
 import org.apache.cayenne.map.LifecycleEvent;
-import org.apache.cayenne.map.ObjRelationship;
 import org.apache.cayenne.modeler.Application;
 import org.apache.cayenne.modeler.ProjectController;
 import org.apache.cayenne.modeler.action.AbstractRemoveCallbackMethodAction;
@@ -59,7 +60,7 @@ import org.apache.cayenne.modeler.event.TablePopupHandler;
 import org.apache.cayenne.modeler.pref.TableColumnPreferences;
 import org.apache.cayenne.modeler.util.CayenneAction;
 import org.apache.cayenne.modeler.util.CayenneTable;
-import org.apache.cayenne.modeler.util.PanelFactory;
+import org.apache.cayenne.modeler.util.ModelerUtil;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -260,7 +261,7 @@ public abstract class AbstractCallbackMethodsTab extends JPanel {
         validate();
     }
 
-    private JPanel CreateTable(CallbackType callbackType)
+    private JPanel CreateTable(final CallbackType callbackType)
     {
    	
     	final CayenneTable cayenneTable = new CayenneTable();
@@ -268,7 +269,7 @@ public abstract class AbstractCallbackMethodsTab extends JPanel {
         // drag-and-drop initialization
     	cayenneTable.setDragEnabled(true);
     	
-        List methods = new ArrayList();
+        List<String> methods = new ArrayList<String>();
         CallbackDescriptor descriptor = null;
         CallbackMap callbackMap = getCallbackMap();
 
@@ -372,6 +373,8 @@ public abstract class AbstractCallbackMethodsTab extends JPanel {
                     		mediator.setCurrentCallbackType((CallbackType)callbackTypeCombo.getItemAt(i));
                     }
                     
+                    //mediator.setCurrentCallbackType(new CallbackType(callbackType, callbackType.getName()));
+                    
                     mediator.setCurrentCallbackMethods(methods);
                     getRemoveCallbackMethodAction().setEnabled(methods.length > 0);
                     getRemoveCallbackMethodAction().setName(
@@ -392,6 +395,22 @@ public abstract class AbstractCallbackMethodsTab extends JPanel {
         
         JPanel panel = new JPanel();
         panel.setLayout(new BorderLayout());
+        
+        
+        final JButton button = new JButton(ModelerUtil.buildIcon("icon-create-method.gif"));
+        button.setOpaque(false);
+        button.setMargin(new Insets(2, 2, 2, 2));
+        button.setBorderPainted(false);
+        button.setContentAreaFilled(false);
+        button.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                JOptionPane.showMessageDialog(button, "You have clicked me");
+            }
+        });
+        JTableHeader header = cayenneTable.getTableHeader();
+        header.setLayout(new BorderLayout());
+        header.add(button, BorderLayout.EAST);
+        
         panel.add(cayenneTable.getTableHeader(), BorderLayout.NORTH);
         panel.add(cayenneTable, BorderLayout.CENTER);
         
@@ -400,18 +419,13 @@ public abstract class AbstractCallbackMethodsTab extends JPanel {
 
     class MyItemListener implements ItemListener  
     {  
-      public void itemStateChanged(ItemEvent e) {  
-        Object source = e.getSource();  
-        if (source instanceof AbstractButton == false) return;  
-        /*boolean checked = e.getStateChange() == ItemEvent.SELECTED;  
-        for(int x = 0, y = table.getRowCount(); x < y; x++)  
-        {  
-          table.setValueAt(new Boolean(checked),x,0);  
-        } */ 
-      }  
+    	public void itemStateChanged(ItemEvent e) {  
+    		Object source = e.getSource();  
+    		if (source instanceof AbstractButton == false) return;  
+    	}  
     } 
 
     protected final CallbackType getSelectedCallbackType() {
     	return mediator.getCurrentCallbackType();
-    }
+    }    
 }
