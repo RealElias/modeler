@@ -1,6 +1,9 @@
-*.class
-*.xml
+target
 .classpath
-.plxarc
 .project
-/target
+.settings/
+.externalToolBuilders
+.DS_Store
+derby.log
+.metadata
+bin/

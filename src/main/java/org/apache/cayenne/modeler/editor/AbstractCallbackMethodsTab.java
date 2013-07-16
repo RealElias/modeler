@@ -29,6 +29,7 @@ import java.awt.event.ItemListener;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.swing.AbstractButton;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
@@ -397,6 +398,18 @@ public abstract class AbstractCallbackMethodsTab extends JPanel {
         return panel;
     }
 
+    class MyItemListener implements ItemListener  
+    {  
+      public void itemStateChanged(ItemEvent e) {  
+        Object source = e.getSource();  
+        if (source instanceof AbstractButton == false) return;  
+        /*boolean checked = e.getStateChange() == ItemEvent.SELECTED;  
+        for(int x = 0, y = table.getRowCount(); x < y; x++)  
+        {  
+          table.setValueAt(new Boolean(checked),x,0);  
+        } */ 
+      }  
+    } 
 
     protected final CallbackType getSelectedCallbackType() {
     	return mediator.getCurrentCallbackType();
