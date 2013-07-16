@@ -149,7 +149,6 @@ public abstract class AbstractCallbackMethodsTab extends JPanel {
         this.setLayout(new BorderLayout());
 
         toolBar = new JToolBar();
-        toolBar.add(getCreateCallbackMethodAction().buildButton());
         toolBar.add(getRemoveCallbackMethodAction().buildButton());
 
         add(toolBar, BorderLayout.NORTH);
@@ -352,6 +351,7 @@ public abstract class AbstractCallbackMethodsTab extends JPanel {
         button.setBorderPainted(false);
         button.setContentAreaFilled(false);
         button.addActionListener(new ButtonListener(callbackType));
+        
         JTableHeader header = cayenneTable.getTableHeader();
         header.setLayout(new BorderLayout());
         header.add(button, BorderLayout.EAST);
@@ -372,7 +372,6 @@ public abstract class AbstractCallbackMethodsTab extends JPanel {
     	
         public void actionPerformed(ActionEvent e) {
         	mediator.setCurrentCallbackType(callbackType);
-            //JOptionPane.showMessageDialog(button, "You have clicked me");
         }
     } 
 
