@@ -206,6 +206,18 @@ public abstract class AbstractCallbackMethodsTab extends JPanel {
                 rebuildTable();
             }
         });
+        
+        callbackTypeCombo.addItemListener(new ItemListener() {
+
+            public void itemStateChanged(ItemEvent e) {
+                if (e.getStateChange() == ItemEvent.SELECTED) {
+                    mediator.setCurrentCallbackType((CallbackType) callbackTypeCombo
+                            .getSelectedItem());
+                    updateCallbackTypeCounters();
+                    rebuildTable();
+                }
+            }
+        });
     }
 
     protected void updateCallbackTypeCounters() {
@@ -351,6 +363,8 @@ public abstract class AbstractCallbackMethodsTab extends JPanel {
         return panel;
     }
 
+    
+    
     protected final CallbackType getSelectedCallbackType() {
         CallbackType selectedType = (CallbackType) callbackTypeCombo.getSelectedItem();
         if (selectedType == null) {
