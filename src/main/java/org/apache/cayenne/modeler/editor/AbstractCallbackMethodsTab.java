@@ -346,6 +346,40 @@ public abstract class AbstractCallbackMethodsTab extends JPanel {
             }
         });
         
+        cayenneTable.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
+
+            public void valueChanged(ListSelectionEvent e) {
+                if (!e.getValueIsAdjusting()) {
+                    String[] methods = new String[0];
+
+                    if (cayenneTable.getSelectedRow() != -1) {
+                        int[] sel = cayenneTable.getSelectedRows();
+                        methods = new String[sel.length];
+
+                        for (int i = 0; i < sel.length; i++) {
+                            methods[i] = (String) cayenneTable
+                                    .getValueAt(
+                                            sel[i],
+                                            cayenneTable
+                                                    .convertColumnIndexToView(CallbackDescriptorTableModel.METHOD_NAME));
+                        }
+                    }
+
+                    LifecycleEvent callbackType = ((CallbackDescriptorTableModel)cayenneTable.getCayenneModel()).getCallbackDescriptor().getCallbackType();
+                    for(int i = 0; i < callbackTypeCombo.getItemCount(); i++) {
+                    	if(callbackType == ((CallbackType)callbackTypeCombo.getItemAt(i)).getType())
+                    		mediator.setCurrentCallbackType((CallbackType)callbackTypeCombo.getItemAt(i));
+                    }
+                    
+                    mediator.setCurrentCallbackMethods(methods);
+                    getRemoveCallbackMethodAction().setEnabled(methods.length > 0);
+                    getRemoveCallbackMethodAction().setName(
+                            getRemoveCallbackMethodAction().getActionName(
+                                    methods.length > 1));
+                }
+            }
+        });
+        
         
         tablePreferences.bind(cayenneTable, null, null, null);
 
@@ -363,13 +397,8 @@ public abstract class AbstractCallbackMethodsTab extends JPanel {
         return panel;
     }
 
-    
-    
+
     protected final CallbackType getSelectedCallbackType() {
-        CallbackType selectedType = (CallbackType) callbackTypeCombo.getSelectedItem();
-        if (selectedType == null) {
-            selectedType = (CallbackType) callbackTypeCombo.getItemAt(0);
-        }
-        return selectedType;
+    	return mediator.getCurrentCallbackType();
     }
 }
