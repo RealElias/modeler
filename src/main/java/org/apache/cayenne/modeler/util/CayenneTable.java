@@ -46,6 +46,7 @@ public class CayenneTable extends JTable {
 
     private SortButtonRenderer renderer = new SortButtonRenderer();
     protected TableHeaderSortingListener tableHeaderListener;
+    private boolean isColumnWidthChanged;
 
     public CayenneTable() {
         super();
@@ -80,8 +81,9 @@ public class CayenneTable extends JTable {
         final DefaultCellEditor textEditor = Application
                 .getWidgetFactory()
                 .createCellEditor(textField);
-        textEditor.setClickCountToStart(2);
+        textEditor.setClickCountToStart(1);
 
+        setDefaultEditor(Object.class, textEditor);
         setDefaultEditor(String.class, textEditor);
     }
 
@@ -242,5 +244,13 @@ public class CayenneTable extends JTable {
 
     public void setSortPreferenceSaver(TableColumnPreferences tableColumnPreferences) {
         tableHeaderListener.setPreferences(tableColumnPreferences);
+    }
+    
+    public boolean getColumnWidthChanged() {
+        return isColumnWidthChanged;
+    }
+
+    public void setColumnWidthChanged(boolean widthChanged) {
+        isColumnWidthChanged = widthChanged;
     }
 }

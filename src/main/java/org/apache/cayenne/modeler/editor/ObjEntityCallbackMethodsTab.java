@@ -52,7 +52,7 @@ public class ObjEntityCallbackMethodsTab extends AbstractCallbackMethodsTab  {
         addComponentListener(
                 new ComponentAdapter() {
                     public void componentShown(ComponentEvent e) {
-                        rebuildTable();
+                        rebuildTables();
                     }
                 }
         );
@@ -61,7 +61,7 @@ public class ObjEntityCallbackMethodsTab extends AbstractCallbackMethodsTab  {
                 new ObjEntityDisplayListener() {
                     public void currentObjEntityChanged(EntityDisplayEvent e) {
                         if (ObjEntityCallbackMethodsTab.this.isVisible()) {
-                            rebuildTable();
+                            rebuildTables();
                         }
                     }
                 }

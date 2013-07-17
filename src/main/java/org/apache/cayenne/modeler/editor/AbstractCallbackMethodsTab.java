@@ -19,6 +19,7 @@
 package org.apache.cayenne.modeler.editor;
 
 import java.awt.BorderLayout;
+import java.awt.Dimension;
 import java.awt.Insets;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.StringSelection;
@@ -27,10 +28,15 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.image.ComponentColorModel;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import javax.swing.AbstractButton;
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
@@ -43,8 +49,11 @@ import javax.swing.JTable;
 import javax.swing.JToolBar;
 import javax.swing.ListSelectionModel;
 import javax.swing.TransferHandler;
+import javax.swing.event.ChangeEvent;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
+import javax.swing.event.TableColumnModelEvent;
+import javax.swing.event.TableColumnModelListener;
 import javax.swing.table.JTableHeader;
 import org.apache.cayenne.map.CallbackDescriptor;
 import org.apache.cayenne.map.CallbackMap;
@@ -65,6 +74,8 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import com.jgoodies.forms.builder.DefaultFormBuilder;
+import com.jgoodies.forms.builder.PanelBuilder;
+import com.jgoodies.forms.layout.CellConstraints;
 import com.jgoodies.forms.layout.FormLayout;
 
 /**
@@ -174,15 +185,15 @@ public abstract class AbstractCallbackMethodsTab extends JPanel {
         mediator.addCallbackMethodListener(new CallbackMethodListener() {
 
             public void callbackMethodChanged(CallbackMethodEvent e) {
-                rebuildTable();
+                rebuildTables();
             }
 
             public void callbackMethodAdded(CallbackMethodEvent e) {
-                rebuildTable();
+                rebuildTables();
             }
 
             public void callbackMethodRemoved(CallbackMethodEvent e) {
-                rebuildTable();
+                rebuildTables();
             }
         });
     }
@@ -190,7 +201,7 @@ public abstract class AbstractCallbackMethodsTab extends JPanel {
     /**
      * rebuilds table content
      */
-    protected void rebuildTable() {
+    protected void rebuildTables() {
     	FormLayout formLayout = new FormLayout("left:" + auxPanel.getWidth() + "px");
         DefaultFormBuilder builder = new DefaultFormBuilder(formLayout);
 
@@ -277,7 +288,7 @@ public abstract class AbstractCallbackMethodsTab extends JPanel {
                     mediator.setDirty(callbackDescriptor.moveMethod(
                             callbackMethod,
                             rowIndex));
-                    rebuildTable();
+                    rebuildTables();
                     return true;
                 }
 
@@ -331,6 +342,47 @@ public abstract class AbstractCallbackMethodsTab extends JPanel {
             }
         });
         
+        cayenneTable.getColumnModel().addColumnModelListener(new TableColumnModelListener() {
+			
+        	public void columnMarginChanged(ChangeEvent e) {
+        		if(!cayenneTable.getColumnWidthChanged()) {
+	        		if(cayenneTable.getTableHeader().getResizingColumn() != null) {
+		        		tablePreferences.bind(cayenneTable, null, null, null);
+	      				cayenneTable.setColumnWidthChanged(true);
+	                }
+        		}
+            }
+
+			public void columnSelectionChanged(ListSelectionEvent e) {
+				
+			}
+			
+			public void columnRemoved(TableColumnModelEvent e) {
+				
+			}
+			
+			public void columnMoved(TableColumnModelEvent e) {
+				
+			}
+		
+			public void columnAdded(TableColumnModelEvent e) {
+				
+			}
+		});
+
+        cayenneTable.getTableHeader().addMouseListener(new MouseAdapter()
+		{
+		    public void mouseReleased(MouseEvent e)
+		    {
+		        if(cayenneTable.getColumnWidthChanged())
+		        {
+		        	if(cayenneTable.getWidth() <= 60)
+		        		cayenneTable.setSize(50, cayenneTable.getHeight());
+		        	rebuildTables();
+		        	cayenneTable.setColumnWidthChanged(false);
+		        }
+		    }
+		});
         
         tablePreferences.bind(cayenneTable, null, null, null);
 
@@ -343,23 +395,33 @@ public abstract class AbstractCallbackMethodsTab extends JPanel {
         JPanel panel = new JPanel();
         panel.setLayout(new BorderLayout());
         
-        
-        final JButton button = getCreateCallbackMethodAction().buildButton();
-        button.setIcon(ModelerUtil.buildIcon("icon-create-method.gif"));
-        button.setOpaque(false);
-        button.setMargin(new Insets(2, 2, 2, 2));
-        button.setBorderPainted(false);
-        button.setContentAreaFilled(false);
-        button.addActionListener(new ButtonListener(callbackType));
-        
-        JTableHeader header = cayenneTable.getTableHeader();
-        header.setLayout(new BorderLayout());
-        header.add(button, BorderLayout.EAST);
-        
+        addButtonAtHeader(cayenneTable, getCreateCallbackMethodAction().buildButton(), new ButtonListener(callbackType), ModelerUtil.buildIcon("icon-create-method.gif"));
+       
         panel.add(cayenneTable.getTableHeader(), BorderLayout.NORTH);
         panel.add(cayenneTable, BorderLayout.CENTER);
         
         return panel;
+    }
+    
+    private void addButtonAtHeader(JTable table, JButton button, ActionListener buttonListener, ImageIcon buttonIcon){
+        PanelBuilder builder = new PanelBuilder(new FormLayout("left:10dlu, 2dlu", "center:10dlu"));
+        CellConstraints cc = new CellConstraints();
+        
+        button.setIcon(ModelerUtil.buildIcon("icon-create-method.gif"));
+        button.setOpaque(false);
+        button.setBorderPainted(false);
+        button.setContentAreaFilled(false);
+        button.addActionListener(buttonListener);
+        
+        builder.add(button, cc.xy(1, 1));
+        
+        JPanel buttonPanel = builder.getPanel();
+        buttonPanel.setOpaque(false);
+       
+        JTableHeader header = table.getTableHeader();
+        //header.setMinimumSize(new Dimension(50, header.getHeight()));
+        header.setLayout(new BorderLayout());
+        header.add(buttonPanel, BorderLayout.EAST);
     }
 
     class ButtonListener implements ActionListener  
