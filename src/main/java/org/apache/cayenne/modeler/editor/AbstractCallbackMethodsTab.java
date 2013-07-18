@@ -111,14 +111,14 @@ public abstract class AbstractCallbackMethodsTab extends JPanel {
      * Dropdown for callback type selection. Contains fixed list of 7 callback types.
      */
     protected CallbackType[] callbackTypes = {
-                            new CallbackType(LifecycleEvent.POST_ADD, "post-add"),
-                            new CallbackType(LifecycleEvent.PRE_PERSIST, "pre-persist"),
-                            new CallbackType(LifecycleEvent.POST_PERSIST, "post-persist"),
-                            new CallbackType(LifecycleEvent.PRE_UPDATE, "pre-update"),
-                            new CallbackType(LifecycleEvent.POST_UPDATE, "post-update"),
-                            new CallbackType(LifecycleEvent.PRE_REMOVE, "pre-remove"),
-                            new CallbackType(LifecycleEvent.POST_REMOVE, "post-remove"),
-                            new CallbackType(LifecycleEvent.POST_LOAD, "post-load"),
+                            new CallbackType(LifecycleEvent.POST_ADD, "PostAdd"),
+                            new CallbackType(LifecycleEvent.PRE_PERSIST, "PrePersist"),
+                            new CallbackType(LifecycleEvent.POST_PERSIST, "PostPersist"),
+                            new CallbackType(LifecycleEvent.PRE_UPDATE, "PreUpdate"),
+                            new CallbackType(LifecycleEvent.POST_UPDATE, "PostUpdate"),
+                            new CallbackType(LifecycleEvent.PRE_REMOVE, "PreRemove"),
+                            new CallbackType(LifecycleEvent.POST_REMOVE, "PostRemove"),
+                            new CallbackType(LifecycleEvent.POST_LOAD, "PostLoad"),
                     };
 
     /**
@@ -205,13 +205,13 @@ public abstract class AbstractCallbackMethodsTab extends JPanel {
     	FormLayout formLayout = new FormLayout("left:" + auxPanel.getWidth() + "px");
         DefaultFormBuilder builder = new DefaultFormBuilder(formLayout);
 
-    	auxPanel.removeAll();
+		auxPanel.removeAll();
 
     	CallbackMap callbackMap = getCallbackMap();
         
         if (callbackMap != null) {
         	for(CallbackType callbackType : callbackTypes) {
-        		builder.append(CreateTable(callbackType));
+        		builder.append(createTable(callbackType));
             }
         }
 
@@ -219,7 +219,7 @@ public abstract class AbstractCallbackMethodsTab extends JPanel {
         validate();
     }
 
-    private JPanel CreateTable(final CallbackType callbackType)
+    private JPanel createTable(final CallbackType callbackType)
     {
    	
     	final CayenneTable cayenneTable = new CayenneTable();
@@ -240,7 +240,8 @@ public abstract class AbstractCallbackMethodsTab extends JPanel {
                 mediator,
                 this,
                 methods,
-                descriptor);
+                descriptor,
+                callbackType);
 
         cayenneTable.setModel(model);
         cayenneTable.setRowHeight(25);
