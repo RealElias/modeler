@@ -19,6 +19,7 @@
 package org.apache.cayenne.modeler.editor;
 
 import java.awt.BorderLayout;
+import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Insets;
 import java.awt.datatransfer.DataFlavor;
@@ -101,15 +102,14 @@ public abstract class AbstractCallbackMethodsTab extends JPanel {
      * panel for displaying callback method tables
      */
     protected JPanel auxPanel;
+    
+    protected CayenneTable[] tables = new CayenneTable[8];
 
     /**
      * preferences for the callback methods table
      */
     protected TableColumnPreferences tablePreferences;
 
-    /**
-     * Dropdown for callback type selection. Contains fixed list of 7 callback types.
-     */
     protected CallbackType[] callbackTypes = {
                             new CallbackType(LifecycleEvent.POST_ADD, "PostAdd"),
                             new CallbackType(LifecycleEvent.PRE_PERSIST, "PrePersist"),
@@ -169,8 +169,10 @@ public abstract class AbstractCallbackMethodsTab extends JPanel {
         auxPanel.setLayout(new BorderLayout());
 
         initTablePreferences();
-
+        
         add(new JScrollPane(auxPanel), BorderLayout.CENTER);
+
+        createTables();
     }
 
     /**
@@ -190,6 +192,7 @@ public abstract class AbstractCallbackMethodsTab extends JPanel {
 
             public void callbackMethodAdded(CallbackMethodEvent e) {
                 rebuildTables();
+                //selectAdded();
             }
 
             public void callbackMethodRemoved(CallbackMethodEvent e) {
@@ -202,26 +205,43 @@ public abstract class AbstractCallbackMethodsTab extends JPanel {
      * rebuilds table content
      */
     protected void rebuildTables() {
-    	FormLayout formLayout = new FormLayout("left:" + auxPanel.getWidth() + "px");
-        DefaultFormBuilder builder = new DefaultFormBuilder(formLayout);
-
-		auxPanel.removeAll();
-
-    	CallbackMap callbackMap = getCallbackMap();
         
+        List<String> methods = new ArrayList<String>();
+        CallbackDescriptor descriptor = null;
+        CallbackMap callbackMap = getCallbackMap();
+        int i = 0;
+
         if (callbackMap != null) {
         	for(CallbackType callbackType : callbackTypes) {
-        		builder.append(createTable(callbackType));
+                final CallbackDescriptorTableModel model = new CallbackDescriptorTableModel(
+                        mediator,
+                        this,
+                        methods,
+                        descriptor,
+                        callbackType);
+
+                tables[i++].setModel(model);
             }
         }
+        validate();
+    }
+    
+    private void createTables() {
+
+    	FormLayout formLayout = new FormLayout("left:pref");
+        DefaultFormBuilder builder = new DefaultFormBuilder(formLayout);
+    	
+    	int index = 0;
+      	for(CallbackType callbackType : callbackTypes) {
+       		tables[index] = createTable(callbackType);
+       		builder.append(createTablePanel(tables[index++]));
+    	}
 
         auxPanel.add(builder.getPanel(), BorderLayout.CENTER);
         validate();
     }
 
-    private JPanel createTable(final CallbackType callbackType)
-    {
-   	
+    private CayenneTable createTable(final CallbackType callbackType) {
     	final CayenneTable cayenneTable = new CayenneTable();
 
         // drag-and-drop initialization
@@ -230,130 +250,124 @@ public abstract class AbstractCallbackMethodsTab extends JPanel {
         List<String> methods = new ArrayList<String>();
         CallbackDescriptor descriptor = null;
         CallbackMap callbackMap = getCallbackMap();
-
-        descriptor = callbackMap.getCallbackDescriptor(callbackType.getType());
-        for (String callbackMethod : descriptor.getCallbackMethods()) {
-            methods.add(callbackMethod);
+        
+        if(callbackMap != null) {
+        	descriptor = callbackMap.getCallbackDescriptor(callbackType.getType());
+        	for (String callbackMethod : descriptor.getCallbackMethods()) {
+        		methods.add(callbackMethod);
+        	}
         }
-
-        final CallbackDescriptorTableModel model = new CallbackDescriptorTableModel(
-                mediator,
-                this,
-                methods,
-                descriptor,
-                callbackType);
-
-        cayenneTable.setModel(model);
-        cayenneTable.setRowHeight(25);
-        cayenneTable.setRowMargin(3);
-        cayenneTable.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
-        cayenneTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
-        
-        cayenneTable.setTransferHandler(new TransferHandler() {
-
-            @Override
-            protected Transferable createTransferable(JComponent c) {
-                int rowIndex = cayenneTable.getSelectedRow();
-
-                String result = null;
-                if (rowIndex >= 0 && rowIndex < cayenneTable.getModel().getRowCount()) {
-                    result = String.valueOf(cayenneTable.getModel().getValueAt(
-                            rowIndex,
-                            CallbackDescriptorTableModel.METHOD_NAME));
-                }
-
-                return new StringSelection(result);
-            }
-
-            @Override
-            public int getSourceActions(JComponent c) {
-                return COPY_OR_MOVE;
-            }
-
-            @Override
-            public boolean importData(JComponent comp, Transferable t) {
-                if (canImport(comp, t.getTransferDataFlavors())) {
-                    String callbackMethod;
-                    try {
-                        callbackMethod = (String) t
-                                .getTransferData(DataFlavor.stringFlavor);
-                    }
-                    catch (Exception e) {
-                        logger.warn("Error transferring", e);
-                        return false;
-                    }
-
-                    int rowIndex = cayenneTable.getSelectedRow();
-
-                    CallbackDescriptor callbackDescriptor = ((CallbackDescriptorTableModel)cayenneTable.getCayenneModel()).getCallbackDescriptor();
-                    mediator.setDirty(callbackDescriptor.moveMethod(
-                            callbackMethod,
-                            rowIndex));
-                    rebuildTables();
-                    return true;
-                }
-
-                return false;
-            }
-
-            @Override
-            public boolean canImport(JComponent comp, DataFlavor[] transferFlavors) {
-                for (DataFlavor flavor : transferFlavors) {
-                    if (DataFlavor.stringFlavor.equals(flavor)) {
-                        return true;
-                    }
-                }
-                return false;
-            }
-        });
-        
-        cayenneTable.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
-
-            public void valueChanged(ListSelectionEvent e) {
-                if (!e.getValueIsAdjusting()) {
-                    String[] methods = new String[0];
-
-                    if (cayenneTable.getSelectedRow() != -1) {
-                        int[] sel = cayenneTable.getSelectedRows();
-                        methods = new String[sel.length];
-
-                        for (int i = 0; i < sel.length; i++) {
-                            methods[i] = (String) cayenneTable
-                                    .getValueAt(
-                                            sel[i],
-                                            cayenneTable
-                                                    .convertColumnIndexToView(CallbackDescriptorTableModel.METHOD_NAME));
-                        }
-                    }
-
-                    LifecycleEvent currentType = ((CallbackDescriptorTableModel)cayenneTable.getCayenneModel()).getCallbackDescriptor().getCallbackType();
-                    for(CallbackType callbackType : callbackTypes) {
-                    	if(callbackType.getType() == currentType) {
-                    		mediator.setCurrentCallbackType(callbackType);
-                    		break;
-                    	}
-                    }
-
-                    mediator.setCurrentCallbackMethods(methods);
-                    getRemoveCallbackMethodAction().setEnabled(methods.length > 0);
-                    getRemoveCallbackMethodAction().setName(
-                            getRemoveCallbackMethodAction().getActionName(
-                                    methods.length > 1));
-                }
-            }
-        });
-        
-        cayenneTable.getColumnModel().addColumnModelListener(new TableColumnModelListener() {
+  	
+	    cayenneTable.setRowHeight(25);
+	    cayenneTable.setRowMargin(3);
+	    cayenneTable.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+	    cayenneTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+	    
+	    cayenneTable.setTransferHandler(new TransferHandler() {
+	
+	        @Override
+	        protected Transferable createTransferable(JComponent c) {
+	            int rowIndex = cayenneTable.getSelectedRow();
+	
+	            String result = null;
+	            if (rowIndex >= 0 && rowIndex < cayenneTable.getModel().getRowCount()) {
+	                result = String.valueOf(cayenneTable.getModel().getValueAt(
+	                        rowIndex,
+	                        CallbackDescriptorTableModel.METHOD_NAME));
+	            }
+	
+	            return new StringSelection(result);
+	        }
+	
+	        @Override
+	        public int getSourceActions(JComponent c) {
+	            return COPY_OR_MOVE;
+	        }
+	
+	        @Override
+	        public boolean importData(JComponent comp, Transferable t) {
+	            if (canImport(comp, t.getTransferDataFlavors())) {
+	                String callbackMethod;
+	                try {
+	                    callbackMethod = (String) t
+	                            .getTransferData(DataFlavor.stringFlavor);
+	                }
+	                catch (Exception e) {
+	                    logger.warn("Error transferring", e);
+	                    return false;
+	                }
+	
+	                int rowIndex = cayenneTable.getSelectedRow();
+	
+	                CallbackDescriptor callbackDescriptor = ((CallbackDescriptorTableModel)cayenneTable.getCayenneModel()).getCallbackDescriptor();
+	                mediator.setDirty(callbackDescriptor.moveMethod(
+	                        callbackMethod,
+	                        rowIndex));
+	                rebuildTables();
+	                return true;
+	            }
+	
+	            return false;
+	        }
+	
+	        @Override
+	        public boolean canImport(JComponent comp, DataFlavor[] transferFlavors) {
+	            for (DataFlavor flavor : transferFlavors) {
+	                if (DataFlavor.stringFlavor.equals(flavor)) {
+	                    return true;
+	                }
+	            }
+	            return false;
+	        }
+	    });
+	    
+	    cayenneTable.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
+	
+	        public void valueChanged(ListSelectionEvent e) {
+	            if (!e.getValueIsAdjusting()) {
+	                String[] methods = new String[0];
+	
+	                if (cayenneTable.getSelectedRow() != -1) {
+	                    int[] sel = cayenneTable.getSelectedRows();
+	                    methods = new String[sel.length];
+	
+	                    for (int i = 0; i < sel.length; i++) {
+	                        methods[i] = (String) cayenneTable
+	                                .getValueAt(
+	                                        sel[i],
+	                                        cayenneTable
+	                                                .convertColumnIndexToView(CallbackDescriptorTableModel.METHOD_NAME));
+	                    }
+	                }
+	
+	                LifecycleEvent currentType = ((CallbackDescriptorTableModel)cayenneTable.getCayenneModel()).getCallbackDescriptor().getCallbackType();
+	                for(CallbackType callbackType : callbackTypes) {
+	                	if(callbackType.getType() == currentType) {
+	                		mediator.setCurrentCallbackType(callbackType);
+	                		break;
+	                	}
+	                }
+	
+	                mediator.setCurrentCallbackMethods(methods);
+	                getRemoveCallbackMethodAction().setEnabled(methods.length > 0);
+	                getRemoveCallbackMethodAction().setName(
+	                        getRemoveCallbackMethodAction().getActionName(
+	                                methods.length > 1));
+	            }
+	        }
+	    });
+	    
+	    cayenneTable.getColumnModel().addColumnModelListener(new TableColumnModelListener() {
 			
-        	public void columnMarginChanged(ChangeEvent e) {
-        		if(!cayenneTable.getColumnWidthChanged()) {
+	    	public void columnMarginChanged(ChangeEvent e) {
+	    		if(!cayenneTable.getColumnWidthChanged()) {
 	        		if(cayenneTable.getTableHeader().getResizingColumn() != null) {
 		        		tablePreferences.bind(cayenneTable, null, null, null);
 	      				cayenneTable.setColumnWidthChanged(true);
 	                }
-        		}
-            }
-
+	    		}
+	        }
+	
 			public void columnSelectionChanged(ListSelectionEvent e) {
 				
 			}
@@ -370,8 +384,8 @@ public abstract class AbstractCallbackMethodsTab extends JPanel {
 				
 			}
 		});
-
-        cayenneTable.getTableHeader().addMouseListener(new MouseAdapter()
+	
+	    cayenneTable.getTableHeader().addMouseListener(new MouseAdapter()
 		{
 		    public void mouseReleased(MouseEvent e)
 		    {
@@ -384,20 +398,29 @@ public abstract class AbstractCallbackMethodsTab extends JPanel {
 		        }
 		    }
 		});
-        
-        tablePreferences.bind(cayenneTable, null, null, null);
+	        
+	    tablePreferences.bind(cayenneTable, null, null, null);
+	
+	    // Create and install a popup
+	    JPopupMenu popup = new JPopupMenu();
+	    popup.add(getRemoveCallbackMethodAction().buildMenu());
+	
+	    TablePopupHandler.install(cayenneTable, popup);
 
-        // Create and install a popup
-        JPopupMenu popup = new JPopupMenu();
-        popup.add(getRemoveCallbackMethodAction().buildMenu());
-
-        TablePopupHandler.install(cayenneTable, popup);
+        addButtonAtHeader(
+        		cayenneTable, 
+        		getCreateCallbackMethodAction().buildButton(),
+        		new ButtonListener(callbackType), 
+        		ModelerUtil.buildIcon("icon-create-method.gif"));
+	    
+	    return cayenneTable;
+    }
+    
+    private JPanel createTablePanel(final CayenneTable cayenneTable) {
         
         JPanel panel = new JPanel();
         panel.setLayout(new BorderLayout());
         
-        addButtonAtHeader(cayenneTable, getCreateCallbackMethodAction().buildButton(), new ButtonListener(callbackType), ModelerUtil.buildIcon("icon-create-method.gif"));
-       
         panel.add(cayenneTable.getTableHeader(), BorderLayout.NORTH);
         panel.add(cayenneTable, BorderLayout.CENTER);
         
@@ -408,7 +431,7 @@ public abstract class AbstractCallbackMethodsTab extends JPanel {
         PanelBuilder builder = new PanelBuilder(new FormLayout("left:10dlu, 2dlu", "center:10dlu"));
         CellConstraints cc = new CellConstraints();
         
-        button.setIcon(ModelerUtil.buildIcon("icon-create-method.gif"));
+        button.setIcon(buttonIcon);
         button.setOpaque(false);
         button.setBorderPainted(false);
         button.setContentAreaFilled(false);
@@ -420,7 +443,6 @@ public abstract class AbstractCallbackMethodsTab extends JPanel {
         buttonPanel.setOpaque(false);
        
         JTableHeader header = table.getTableHeader();
-        //header.setMinimumSize(new Dimension(50, header.getHeight()));
         header.setLayout(new BorderLayout());
         header.add(buttonPanel, BorderLayout.EAST);
     }
@@ -440,5 +462,26 @@ public abstract class AbstractCallbackMethodsTab extends JPanel {
 
     protected final CallbackType getSelectedCallbackType() {
     	return mediator.getCurrentCallbackType();
-    }    
+    }
+    
+    private void selectAdded() {
+    	for(Component component : ((JPanel)auxPanel.getComponent(0)).getComponents()){
+    		JPanel tablePanel = (JPanel)component;
+    		for(Component table : tablePanel.getComponents()) {
+    			if(table.getClass() == CayenneTable.class){
+    				CayenneTable cayenneTable = (CayenneTable)table;
+    				LifecycleEvent type1 = mediator.getCurrentCallbackType().getType();
+    				LifecycleEvent type2 = ((CallbackDescriptorTableModel)cayenneTable.getCayenneModel()).getCallbackType().getType();
+    		        if (cayenneTable.editCellAt(
+    		        		cayenneTable.getRowCount() - 1,
+    		        		CallbackDescriptorTableModel.METHOD_NAME)
+    		        		&& cayenneTable.getEditorComponent() != null
+    		        		&& mediator.getCurrentCallbackType().getType() == 
+    		        		((CallbackDescriptorTableModel)cayenneTable.getCayenneModel()).getCallbackType().getType()) {
+    		        	cayenneTable.getEditorComponent().requestFocus();
+    		        }
+    			}
+    		}
+    	}
+    }
 }
