@@ -36,6 +36,7 @@ public class CallbackDescriptorTableModel extends CayenneTableModel {
 
     private static final int COLUMN_COUNT = 1;
     public static final int METHOD_NAME = 0;
+    private boolean isColumnWidthChanged;
     protected ObjEntity entity;
     protected CallbackDescriptor callbackDescriptor;
     protected CallbackType callbackType;
@@ -173,6 +174,14 @@ public class CallbackDescriptorTableModel extends CayenneTableModel {
         return callbackDescriptor;
     }
 
+    /**
+     * @return CallbackType of the model
+     */
+    public CallbackType getCallbackType() {
+        return callbackType;
+    }
+
+    
     @Override
     public boolean isColumnSortable(int sortCol) {
         return false;
@@ -180,5 +189,13 @@ public class CallbackDescriptorTableModel extends CayenneTableModel {
 
     @Override
     public void sortByColumn(int sortCol, boolean isAscent) {
+    }
+    
+    public boolean getColumnWidthChanged() {
+        return isColumnWidthChanged;
+    }
+
+    public void setColumnWidthChanged(boolean widthChanged) {
+        isColumnWidthChanged = widthChanged;
     }
 }
