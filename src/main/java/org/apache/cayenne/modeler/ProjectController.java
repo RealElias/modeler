@@ -238,7 +238,7 @@ public class ProjectController extends CayenneController {
      * Project files watcher. When project file is changed, user will be asked
      * to confirm loading the changes
      */
-    ProjectWatchdog watchdog;
+    private ProjectFileChangeTracker fileChangeTracker;
 
     public ProjectController(CayenneModelerController parent) {
         super(parent);
@@ -269,17 +269,18 @@ public class ProjectController extends CayenneController {
             if (project == null) {
                 this.entityResolver = null;
 
-                if (watchdog != null) {
-                    watchdog.interrupt();
-                    watchdog = null;
+                if (fileChangeTracker != null) {
+                    fileChangeTracker.interrupt();
+                    fileChangeTracker = null;
                 }
             } else {
-                if (watchdog == null) {
-                    watchdog = new ProjectWatchdog(this);
-                    watchdog.start();
+                if (fileChangeTracker == null) {
+                    fileChangeTracker = new ProjectFileChangeTracker(this);
+                    fileChangeTracker.setDaemon(true);
+                    fileChangeTracker.start();
                 }
 
-                watchdog.reconfigure();
+                fileChangeTracker.reconfigure();
 
                 entityResolver = new EntityResolver(
                         ((DataChannelDescriptor) currentProject.getRootNode()).getDataMaps());
@@ -414,54 +415,51 @@ public class ProjectController extends CayenneController {
 
     private void removeFromHistory(EventObject e) {
 
-        synchronized (controllerStateHistory) {
-            int count = controllerStateHistory.size();
-            List<Object> removeList = new ArrayList<Object>();
+        int count = controllerStateHistory.size();
+        List<Object> removeList = new ArrayList<Object>();
 
-            for (int i = 0; i < count; i++) {
-                ControllerState cs = (ControllerState) controllerStateHistory.get(i);
+        for (int i = 0; i < count; i++) {
+            ControllerState cs = (ControllerState) controllerStateHistory.get(i);
 
-                EventObject csEvent = cs.event;
+            EventObject csEvent = cs.event;
 
-                if (csEvent == null) {
-                    continue;
-                }
-
-                if (e instanceof EntityEvent && csEvent instanceof EntityDisplayEvent) {
-                    if (((EntityEvent) e).getEntity() == ((EntityDisplayEvent) csEvent).getEntity()) {
-                        removeList.add(cs);
-                    }
-                } else if (e instanceof EmbeddableEvent && csEvent instanceof EmbeddableDisplayEvent) {
-                    if (((EmbeddableEvent) e).getEmbeddable() == ((EmbeddableDisplayEvent) csEvent).getEmbeddable()) {
-                        removeList.add(cs);
-                    }
-                } else if (e instanceof ProcedureEvent && csEvent instanceof ProcedureDisplayEvent) {
-                    if (((ProcedureEvent) e).getProcedure() == ((ProcedureDisplayEvent) csEvent).getProcedure()) {
-                        removeList.add(cs);
-                    }
-                } else if (e instanceof QueryEvent && csEvent instanceof QueryDisplayEvent) {
-                    if (((QueryEvent) e).getQuery() == ((QueryDisplayEvent) csEvent).getQuery()) {
-                        removeList.add(cs);
-                    }
-                } else if (e instanceof DataMapEvent && csEvent instanceof DataMapDisplayEvent) {
-                    if (((DataMapEvent) e).getDataMap() == ((DataMapDisplayEvent) csEvent).getDataMap()) {
-                        removeList.add(cs);
-                    }
-                } else if (e instanceof DataNodeEvent && csEvent instanceof DataNodeDisplayEvent) {
-                    if (((DataNodeEvent) e).getDataNode() == ((DataNodeDisplayEvent) csEvent).getDataNode()) {
-                        removeList.add(cs);
-                    }
-                } else if (e instanceof DomainEvent && csEvent instanceof DomainDisplayEvent) {
-                    if (((DomainEvent) e).getDomain() == ((DomainDisplayEvent) csEvent).getDomain()) {
-                        removeList.add(cs);
-                    }
-                }
-            }
-            Iterator it = removeList.iterator();
-            while (it.hasNext()) {
-                controllerStateHistory.remove(it.next());
+            if (csEvent == null) {
+                continue;
             }
 
+            if (e instanceof EntityEvent && csEvent instanceof EntityDisplayEvent) {
+                if (((EntityEvent) e).getEntity() == ((EntityDisplayEvent) csEvent).getEntity()) {
+                    removeList.add(cs);
+                }
+            } else if (e instanceof EmbeddableEvent && csEvent instanceof EmbeddableDisplayEvent) {
+                if (((EmbeddableEvent) e).getEmbeddable() == ((EmbeddableDisplayEvent) csEvent).getEmbeddable()) {
+                    removeList.add(cs);
+                }
+            } else if (e instanceof ProcedureEvent && csEvent instanceof ProcedureDisplayEvent) {
+                if (((ProcedureEvent) e).getProcedure() == ((ProcedureDisplayEvent) csEvent).getProcedure()) {
+                    removeList.add(cs);
+                }
+            } else if (e instanceof QueryEvent && csEvent instanceof QueryDisplayEvent) {
+                if (((QueryEvent) e).getQuery() == ((QueryDisplayEvent) csEvent).getQuery()) {
+                    removeList.add(cs);
+                }
+            } else if (e instanceof DataMapEvent && csEvent instanceof DataMapDisplayEvent) {
+                if (((DataMapEvent) e).getDataMap() == ((DataMapDisplayEvent) csEvent).getDataMap()) {
+                    removeList.add(cs);
+                }
+            } else if (e instanceof DataNodeEvent && csEvent instanceof DataNodeDisplayEvent) {
+                if (((DataNodeEvent) e).getDataNode() == ((DataNodeDisplayEvent) csEvent).getDataNode()) {
+                    removeList.add(cs);
+                }
+            } else if (e instanceof DomainEvent && csEvent instanceof DomainDisplayEvent) {
+                if (((DomainEvent) e).getDomain() == ((DomainDisplayEvent) csEvent).getDomain()) {
+                    removeList.add(cs);
+                }
+            }
+        }
+
+        for (Object o : removeList) {
+            controllerStateHistory.remove(o);
         }
     }
 
@@ -1617,11 +1615,8 @@ public class ProjectController extends CayenneController {
         }
     }
 
-    /**
-     * @return the project files' watcher
-     */
-    public ProjectWatchdog getProjectWatcher() {
-        return watchdog;
+    public ProjectFileChangeTracker getFileChangeTracker() {
+        return fileChangeTracker;
     }
 
     /**
