@@ -219,7 +219,7 @@ public abstract class AbstractCallbackMethodsTab extends JPanel {
                         methods,
                         descriptor,
                         callbackType);
-
+                
                 tables[i++].setModel(model);
             }
         }

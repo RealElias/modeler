@@ -189,4 +189,12 @@ public class CallbackDescriptorTableModel extends CayenneTableModel {
     @Override
     public void sortByColumn(int sortCol, boolean isAscent) {
     }
+    
+    public boolean getColumnWidthChanged() {
+        return isColumnWidthChanged;
+    }
+
+    public void setColumnWidthChanged(boolean widthChanged) {
+        isColumnWidthChanged = widthChanged;
+    }
 }
