@@ -99,12 +99,7 @@ public class CallbackDescriptorTableModel extends CayenneTableModel {
      * @return the value Object at the specified cell
      */
     public Object getValueAt(int rowIndex, int columnIndex) {
-        switch (columnIndex) {
-            case METHOD_NAME:
-                return getCallbackMethod(rowIndex);
-        }
-
-        return null;
+    	return getCallbackMethod(rowIndex);
     }
 
     /**
@@ -119,12 +114,7 @@ public class CallbackDescriptorTableModel extends CayenneTableModel {
      * @return column name
      */
     public String getColumnName(int column) {
-        switch (column) {
-            case METHOD_NAME:
-                return callbackDescriptor.getCallbackType().name();
-        }
-
-        return null;
+        return callbackDescriptor.getCallbackType().name();
     }
 
     /**
@@ -135,10 +125,6 @@ public class CallbackDescriptorTableModel extends CayenneTableModel {
      * @return true
      */
     public boolean isCellEditable(int rowIndex, int columnIndex) {
-        switch (columnIndex) {
-            case METHOD_NAME:
-                return true;
-        }
         return true;
     }
 
